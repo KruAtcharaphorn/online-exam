@@ -67,14 +67,10 @@
             <p><b>นักเรียน:</b> <span id="display-name"></span> | <b>ชั้น:</b> <span id="display-class"></span></p>
             <hr>
             
-            <!-- วางฟอร์มข้อสอบ หรือ Google Forms Iframe ตรงนี้ -->
-            <form id="exam-form" onsubmit="submitExam(event)">
-                <p><b>ข้อที่ 1:</b> ข้อใดคือคำตอบที่ถูกต้อง?</p>
-                <input type="radio" name="q1" value="A" required> ก. คำตอบ A<br>
-                <input type="radio" name="q1" value="B"> ข. คำตอบ B<br>
-                <br>
-                <button type="submit" style="background-color: #28a745;">ส่งข้อสอบ</button>
-            </form>
+            <iframe src="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true" width="100%" height="800" frameborder="0" marginheight="0" marginwidth="0">กำลังโหลด…</iframe>
+
+<br><br>
+<button onclick="finishExam()" style="background-color: #28a745;">กดยืนยันเมื่อส่ง Google Forms เรียบร้อยแล้ว</button>
         </div>
 
         <!-- 3. ส่วนแสดงเมื่อส่งข้อสอบแล้ว -->
@@ -150,17 +146,20 @@
         }
 
         // ฟังก์ชันส่งข้อสอบ
-        function submitExam(e) {
-            e.preventDefault();
+       // ฟังก์ชันส่งข้อสอบ
+        function finishExam() {
             if (confirm("ยืนยันที่จะส่งข้อสอบหรือไม่?")) {
                 examStarted = false;
                 // บันทึกสถานะลงบราวเซอร์ว่าส่งข้อสอบแล้ว (เข้าสอบซ้ำไม่ได้)
                 localStorage.setItem("exam_submitted", "true");
-                
+
                 document.getElementById('exam-section').style.display = 'none';
                 document.getElementById('submitted-section').style.display = 'block';
             }
         }
-    </script>
+}
+    }
+</script>
 </body>
 </html>
+
