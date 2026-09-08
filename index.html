@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเข้าสอบออนไลน์</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background-color: #0056b3; }
+        .warning { color: red; font-size: 14px; margin-top: 5px; }
+        
+        /* หน้าจอล็อค */
+        #lock-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            color: white;
+            text-align: center;
+            padding-top: 15%;
+            z-index: 9999;
+        }
+        #lock-screen input { width: 250px; display: inline-block; margin-bottom: 10px; }
+        #lock-screen button { width: auto; background-color: #dc3545; }
+
+        /* ซ่อนหน้าข้อสอบไว้ก่อนกรอกข้อมูล */
+        #exam-section { display: none; }
+        #submitted-section { display: none; text-align: center; color: green; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 1. ส่วนลงทะเบียนนักเรียน -->
+        <div id="student-form-section">
+            <h2>ลงชื่อเข้าสอบ</h2>
+            <form id="student-info-form" onsubmit="startExam(event)">
+                <div class="form-group">
+                    <label>ชื่อ - นามสกุล:</label>
+                    <input type="text" id="student-name" required placeholder="ด.ช. สมชาย เข็มกลัด">
+                </div>
+                <div class="form-group">
+                    <label>ชั้นเรียน:</label>
+                    <input type="text" id="student-class" required placeholder="ม.3/1">
+                </div>
+                <div class="form-group">
+                    <label>เลขที่:</label>
+                    <input type="text" id="student-no" required placeholder="12">
+                </div>
+                <div class="form-group">
+                    <label>อีเมลโรงเรียน:</label>
+                    <input type="email" id="student-email" required placeholder="student@school.ac.th">
+                </div>
+                <p class="warning">* หมายเหตุ: สามารถเข้าสอบได้เพียง 1 ครั้งเท่านั้น และห้ามออกจากหน้าสอบเกิน 3 ครั้ง</p>
+                <button type="submit">เริ่มทำข้อสอบ</button>
+            </form>
+        </div>
+
+        <!-- 2. ส่วนหน้าทำข้อสอบ -->
+        <div id="exam-section">
+            <h2>ข้อสอบออนไลน์</h2>
+            <p><b>นักเรียน:</b> <span id="display-name"></span> | <b>ชั้น:</b> <span id="display-class"></span></p>
+            <hr>
+            
+            <!-- วางฟอร์มข้อสอบ หรือ Google Forms Iframe ตรงนี้ -->
+            <form id="exam-form" onsubmit="submitExam(event)">
+                <p><b>ข้อที่ 1:</b> ข้อใดคือคำตอบที่ถูกต้อง?</p>
+                <input type="radio" name="q1" value="A" required> ก. คำตอบ A<br>
+                <input type="radio" name="q1" value="B"> ข. คำตอบ B<br>
+                <br>
+                <button type="submit" style="background-color: #28a745;">ส่งข้อสอบ</button>
+            </form>
+        </div>
+
+        <!-- 3. ส่วนแสดงเมื่อส่งข้อสอบแล้ว -->
+        <div id="submitted-section">
+            <h2>ส่งข้อสอบเรียบร้อยแล้ว!</h2>
+            <p>คุณได้ทำการส่งข้อสอบแล้ว ไม่สามารถทำซ้ำได้อีก</p>
+        </div>
+    </div>
+
+    <!-- หน้าจอแจ้งเตือนถูกล็อค -->
+    <div id="lock-screen">
+        <h1 style="color: #ff4d4d;">หน้าจอถูกล็อค!</h1>
+        <p>คุณออกจากหน้าสอบเกิน 3 ครั้ง กรุณาแจ้งครูผู้สอนเพื่อใส่รหัสปลดล็อค</p>
+        <br>
+        <input type="password" id="teacher-pin" placeholder="กรอกรหัสครูผู้สอน">
+        <br>
+        <button onclick="unlockExam()">ปลดล็อคหน้าจอ</button>
+    </div>
+
+    <script>
+        let warningCount = 0;
+        const maxWarnings = 3;
+        const TEACHER_PIN = "1234"; // << กำหนดรหัสผ่านของครูตรงนี้
+        let examStarted = false;
+
+        // ตรวจสอบเมื่อโหลดหน้าเว็บว่าเคยสอบไปแล้วหรือยัง
+        window.onload = function() {
+            if (localStorage.getItem("exam_submitted") === "true") {
+                document.getElementById('student-form-section').style.display = 'none';
+                document.getElementById('submitted-section').style.display = 'block';
+            }
+        };
+
+        // ฟังก์ชันเริ่มทำข้อสอบ
+        function startExam(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('student-name').value;
+            const studentClass = document.getElementById('student-class').value;
+
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('display-class').innerText = studentClass;
+
+            document.getElementById('student-form-section').style.display = 'none';
+            document.getElementById('exam-section').style.display = 'block';
+            
+            examStarted = true; // เริ่มนับการสลับหน้าจอเฉพาะตอนทำข้อสอบ
+        }
+
+        // ตรวจจับเมื่อนักเรียนสลับแท็บ/ย่อหน้าจอ
+        document.addEventListener("visibilitychange", function() {
+            if (document.hidden && examStarted) {
+                warningCount++;
+                if (warningCount < maxWarnings) {
+                    alert(`เตือนครั้งที่ ${warningCount}: คุณออกจากหน้าสอบ! (หากครบ ${maxWarnings} ครั้งระบบจะทำการล็อคหน้าจอ)`);
+                } else {
+                    document.getElementById('lock-screen').style.display = 'block';
+                }
+            }
+        });
+
+        // ปลดล็อคโดยครู
+        function unlockExam() {
+            const inputPin = document.getElementById('teacher-pin').value;
+            if (inputPin === TEACHER_PIN) {
+                warningCount = 0;
+                document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('teacher-pin').value = '';
+                alert("ปลดล็อคเรียบร้อยแล้ว นักเรียนสามารถทำข้อสอบต่อได้");
+            } else {
+                alert("รหัสผ่านไม่ถูกต้อง");
+            }
+        }
+
+        // ฟังก์ชันส่งข้อสอบ
+        function submitExam(e) {
+            e.preventDefault();
+            if (confirm("ยืนยันที่จะส่งข้อสอบหรือไม่?")) {
+                examStarted = false;
+                // บันทึกสถานะลงบราวเซอร์ว่าส่งข้อสอบแล้ว (เข้าสอบซ้ำไม่ได้)
+                localStorage.setItem("exam_submitted", "true");
+                
+                document.getElementById('exam-section').style.display = 'none';
+                document.getElementById('submitted-section').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
