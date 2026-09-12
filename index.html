@@ -12,59 +12,106 @@
         input[type="text"], input[type="email"], input[type="password"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
         button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
         button:hover { background-color: #0056b3; }
-        .warning { color: red; font-size: 14px; margin-top: 5px; }
         
-        /* หน้าจอล็อค */
+        #exam-section { display: none; }
+        #submitted-section { display: none; text-align: center; color: green; }
+
+        /* หน้าจอล็อค/แจ้งเตือน */
         #lock-screen {
             display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
+            top: 0; left: 0; 
+            width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
             color: white;
             text-align: center;
-            padding-top: 15%;
             z-index: 9999;
+            box-sizing: border-box;
         }
-        #lock-screen input { width: 250px; display: inline-block; margin-bottom: 10px; }
-        #lock-screen button { width: auto; background-color: #dc3545; }
 
-        /* ซ่อนหน้าข้อสอบไว้ก่อนกรอกข้อมูล */
-        #exam-section { display: none; }
-        #submitted-section { display: none; text-align: center; color: green; }
+        .lock-card {
+            background: #1e293b;
+            max-width: 450px;
+            margin: 10vh auto 0;
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            border: 1px solid #334155;
+        }
+
+        .lock-icon { font-size: 50px; margin-bottom: 15px; }
+        .lock-title { color: #ef4444; font-size: 24px; margin-bottom: 10px; font-weight: bold; }
+        .lock-desc { color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
+
+        .warning-badge {
+            display: inline-block;
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .lock-input {
+            width: 100% !important;
+            padding: 12px !important;
+            border-radius: 8px !important;
+            border: 1px solid #475569 !important;
+            background-color: #0f172a !important;
+            color: white !important;
+            text-align: center;
+            font-size: 18px !important;
+            letter-spacing: 4px;
+            margin-bottom: 15px !important;
+            box-sizing: border-box;
+        }
+
+        .lock-btn {
+            width: 100% !important;
+            background-color: #ef4444 !important;
+            padding: 12px !important;
+            border-radius: 8px !important;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .lock-btn:hover { background-color: #dc2626 !important; }
     </style>
 </head>
 <body>
 
     <div class="container">
-<!-- 1. ส่วนลงทะเบียนนักเรียน -->
-<div id="student-form-section">
-    <h2>ลงชื่อเข้าสอบ</h2>
-    <form id="student-info-form" onsubmit="startExam(event)">
-        <!-- กรอกอีเมลนักเรียน -->
-        <div class="form-group">
-            <label for="student-email">อีเมลนักเรียน:</label>
-            <input type="email" id="student-email" required placeholder="student@example.com">
-        </div>
+        <!-- 1. ส่วนลงทะเบียนนักเรียน -->
+        <div id="student-form-section">
+            <h2>ลงชื่อเข้าสอบ</h2>
+            <form id="student-info-form" onsubmit="startExam(event)">
+                <div class="form-group">
+                    <label for="student-email">อีเมลนักเรียน (ใช้อีเมลโรงเรียนเท่านั้น):</label>
+                    <input type="email" id="student-email" required placeholder="example@school.ac.th">
+                </div>
 
-        <!-- ตัวเลือกวิชาสอบ -->
-        <div class="form-group">
-            <label for="exam-select">เลือกวิชาสอบ:</label>
-            <select id="exam-select" required>
-                <option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>
-                <option value="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true">วิชาคณิตศาสตร์</option>
-                <option value="https://docs.google.com/forms/d/e/1FAIpQLSfo65x8v39qQHtUtqxzQTPgOcM7hh6R5hhwoDopcxeqRtMr8w/viewform?usp=header">ข้อสอบกลางภาค วิชาเทคโนโลยี 5 (วิทยาการคำนวณ) ม.3/2569</option>
-                <option value="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true">วิชาภาษาอังกฤษ</option>
-            </select>
+                <div class="form-group">
+                    <label for="exam-select">เลือกวิชาสอบ:</label>
+                    <select id="exam-select" required>
+                        <option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true">วิชาคณิตศาสตร์</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLSfo65x8v39qQHtUtqxzQTPgOcM7hh6R5hhwoDopcxeqRtMr8w/viewform?usp=header">ข้อสอบกลางภาค วิชาเทคโนโลยี 5 (วิทยาการคำนวณ ม.3/2569)</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true">วิชาภาษาอังกฤษ</option>
+                    </select>
+                </div>
+                
+                <button type="submit" id="submit-btn">เริ่มทำข้อสอบ</button>
+            </form>
         </div>
-        
-        <button type="submit">เริ่มทำข้อสอบ</button>
-    </form>
-</div>
 
         <!-- 2. ส่วนหน้าทำข้อสอบ -->
         <div id="exam-section">
             <h2>ข้อสอบออนไลน์</h2>
-            <p><b>นักเรียน:</b> <span id="display-name"></span> | <b>ชั้น:</b> <span id="display-class"></span> | <b>วิชา:</b> <span id="display-subject"></span></p>
+            <p><b>อีเมล:</b> <span id="display-email"></span> | <b>วิชา:</b> <span id="display-subject"></span></p>
             <hr>
             
             <iframe id="exam-iframe" src="" width="100%" height="800" frameborder="0" marginheight="0" marginwidth="0">กำลังโหลด…</iframe>
@@ -80,139 +127,40 @@
         </div>
     </div>
 
- <!-- CSS สำหรับปรับแต่งสไตล์หน้าเตือนและหน้าล็อค -->
-<style>
-    /* ปรับแต่งหน้าจอล็อค/แจ้งเตือน */
-    #lock-screen {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; 
-        width: 100%; height: 100%;
-        background: rgba(15, 23, 42, 0.95); /* พื้นหลังสีเข้มสไตล์โมเดิร์น */
-        backdrop-filter: blur(8px);
-        color: white;
-        text-align: center;
-        z-index: 9999;
-        box-sizing: border-box;
-    }
+    <!-- หน้าจอแจ้งเตือน / ถูกล็อค -->
+    <div id="lock-screen">
+        <div class="lock-card">
+            <div class="lock-icon">⚠️</div>
+            <div class="warning-badge" id="warning-badge-text">เตือนครั้งที่ 1 / 3</div>
+            <h2 class="lock-title" id="lock-title-text">แจ้งเตือนการออกจากหน้าสอบ</h2>
+            <p class="lock-desc" id="lock-desc-text">
+                คุณได้ทำการสลับแท็บหรือออกจากหน้าจอทำข้อสอบ <br>
+                หากออกจากหน้าสอบครบ 3 ครั้ง ระบบจะทำการล็อคหน้าจอทันที
+            </p>
 
-    .lock-card {
-        background: #1e293b;
-        max-width: 450px;
-        margin: 10vh auto 0;
-        padding: 40px 30px;
-        border-radius: 16px;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-        border: 1px solid #334155;
-    }
+            <div id="pin-section" style="display: none;">
+                <input type="password" id="teacher-pin" class="lock-input" placeholder="กรอกรหัสครูผู้สอน">
+                <button onclick="unlockExam()" class="lock-btn">ปลดล็อคหน้าจอ</button>
+            </div>
 
-    .lock-icon {
-        font-size: 50px;
-        margin-bottom: 15px;
-    }
-
-    .lock-title {
-        color: #ef4444;
-        font-size: 24px;
-        margin-bottom: 10px;
-        font-weight: bold;
-    }
-
-    .lock-desc {
-        color: #94a3b8;
-        font-size: 15px;
-        line-height: 1.6;
-        margin-bottom: 20px;
-    }
-
-    .warning-badge {
-        display: inline-block;
-        background: rgba(239, 68, 68, 0.2);
-        color: #fca5a5;
-        padding: 6px 16px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: bold;
-        margin-bottom: 15px;
-        border: 1px solid rgba(239, 68, 68, 0.4);
-    }
-
-    .lock-input {
-        width: 100% !important;
-        padding: 12px !important;
-        border-radius: 8px !important;
-        border: 1px solid #475569 !important;
-        background-color: #0f172a !important;
-        color: white !important;
-        text-align: center;
-        font-size: 18px !important;
-        letter-spacing: 4px;
-        margin-bottom: 15px !important;
-        box-sizing: border-box;
-    }
-
-    .lock-btn {
-        width: 100% !important;
-        background-color: #ef4444 !important;
-        padding: 12px !important;
-        border-radius: 8px !important;
-        font-weight: bold;
-        transition: background 0.2s;
-    }
-
-    .lock-btn:hover {
-        background-color: #dc2626 !important;
-    }
-</style>
-
-<!-- โครงสร้าง HTML หน้าจอล็อคและแจ้งเตือน -->
-<div id="lock-screen">
-    <div class="lock-card">
-        <div class="lock-icon">⚠️</div>
-        <div class="warning-badge" id="warning-badge-text">เตือนครั้งที่ 1 / 3</div>
-        <h2 class="lock-title" id="lock-title-text">แจ้งเตือนการออกจากหน้าสอบ</h2>
-        <p class="lock-desc" id="lock-desc-text">
-            คุณได้ทำการสลับแท็บหรือออกจากหน้าจอทำข้อสอบ <br>
-            หากออกจากหน้าสอบครบ 3 ครั้ง ระบบจะทำการ <b>ล็อคหน้าจอ</b> ทันที
-        </p>
-
-        <!-- ส่วนกรอกรหัสครู (จะแสดงเมื่อถูกล็อคสมบูรณ์) -->
-        <div id="pin-section" style="display: none;">
-            <input type="password" id="teacher-pin" class="lock-input" placeholder="กรอกรหัสครูผู้สอน">
-            <button onclick="unlockExam()" class="lock-btn">ปลดล็อคหน้าจอ</button>
-        </div>
-
-        <!-- ปุ่มรับทราบ (สำหรับกรณีแจ้งเตือนครั้งที่ 1 และ 2) -->
-        <div id="acknowledge-section">
-            <button onclick="dismissWarning()" class="lock-btn" style="background-color: #3b82f6 !important;">รับทราบ และกลับไปทำข้อสอบ</button>
+            <div id="acknowledge-section">
+                <button onclick="dismissWarning()" class="lock-btn" style="background-color: #3b82f6 !important;">รับทราบ และกลับไปทำข้อสอบ</button>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-    // กำหนดรหัสผ่านของครูผู้สอนเป็น 999999
-    const TEACHER_PIN = "999999"; 
-
-    // ฟังก์ชันปลดล็อคโดยครูผู้สอน
-    function unlockExam() {
-        const inputPin = document.getElementById('teacher-pin').value;
-        if (inputPin === TEACHER_PIN) {
-            warningCount = 0;
-            document.getElementById('lock-screen').style.display = 'none';
-            document.getElementById('teacher-pin').value = '';
-            alert("ปลดล็อคเรียบร้อยแล้ว นักเรียนสามารถทำข้อสอบต่อได้");
-        } else {
-            alert("รหัสผ่านไม่ถูกต้อง");
-        }
-    }
-</script>
     <script>
         let warningCount = 0;
         const maxWarnings = 3;
-        const TEACHER_PIN = "1234"; // << กำหนดรหัสผ่านของครูตรงนี้
+        const TEACHER_PIN = "999999"; 
         let examStarted = false;
 
-        // ตรวจสอบเมื่อโหลดหน้าเว็บว่าเคยสอบไปแล้วหรือยัง
+        // 1. กำหนดโดเมนอีเมลโรงเรียนตรงนี้ (เช่น @school.ac.th)
+        const SCHOOL_DOMAIN = "@school.ac.th"; 
+
+        // 2. วาง URL ของ Google Apps Script Web App ที่ได้สร้างไว้ตรงนี้
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+
         window.onload = function() {
             if (localStorage.getItem("exam_submitted") === "true") {
                 document.getElementById('student-form-section').style.display = 'none';
@@ -224,40 +172,91 @@
         function startExam(e) {
             e.preventDefault();
             
-            const name = document.getElementById('student-name').value;
-            const studentClass = document.getElementById('student-class').value;
+            const email = document.getElementById('student-email').value.trim().toLowerCase();
             const examSelect = document.getElementById('exam-select');
             
+            // ตรวจสอบว่าเป็นอีเมลโรงเรียนหรือไม่
+            if (!email.endsWith(SCHOOL_DOMAIN)) {
+                alert(`กรุณาใช้อีเมลของโรงเรียนเท่านั้น (${SCHOOL_DOMAIN})`);
+                return;
+            }
+
+            // ตรวจสอบว่าอีเมลนี้เคยสอบไปแล้วหรือยัง
+            let submittedEmails = JSON.parse(localStorage.getItem("submitted_emails") || "[]");
+            if (submittedEmails.includes(email)) {
+                alert("อีเมลนี้ได้ทำการเข้าสอบไปแล้ว ไม่สามารถสอบซ้ำได้");
+                return;
+            }
+
             const selectedUrl = examSelect.value;
             const selectedSubject = examSelect.options[examSelect.selectedIndex].text;
 
-            // แสดงข้อมูลนักเรียนและชื่อวิชา
-            document.getElementById('display-name').innerText = name;
-            document.getElementById('display-class').innerText = studentClass;
+            document.getElementById('display-email').innerText = email;
             document.getElementById('display-subject').innerText = selectedSubject;
-
-            // กำหนดลิงก์ Google Forms ตามวิชาที่เลือก
             document.getElementById('exam-iframe').src = selectedUrl;
+
+            // บันทึกเวลาที่เริ่มเข้าสอบ และส่งข้อมูลไปยัง Google Sheets
+            const timestamp = new Date().toLocaleString('th-TH');
+            sendDataToGoogleSheet(email, selectedSubject, timestamp);
 
             document.getElementById('student-form-section').style.display = 'none';
             document.getElementById('exam-section').style.display = 'block';
             
-            examStarted = true; // เริ่มนับการสลับหน้าจอเฉพาะตอนทำข้อสอบ
+            examStarted = true;
+        }
+
+        // ฟังก์ชันส่งข้อมูลไปยัง Google Sheets
+        function sendDataToGoogleSheet(email, subject, timestamp) {
+            if (GOOGLE_SCRIPT_URL.includes("YOUR_SCRIPT_ID")) return; // ข้ามการส่งหากยังไม่ใส่ URL
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: email,
+                    subject: subject,
+                    timestamp: timestamp
+                })
+            }).catch(error => console.error("Error sending data:", error));
         }
 
         // ตรวจจับเมื่อนักเรียนสลับแท็บ/ย่อหน้าจอ
         document.addEventListener("visibilitychange", function() {
             if (document.hidden && examStarted) {
                 warningCount++;
+                
+                const lockScreen = document.getElementById('lock-screen');
+                const badgeText = document.getElementById('warning-badge-text');
+                const titleText = document.getElementById('lock-title-text');
+                const descText = document.getElementById('lock-desc-text');
+                const pinSection = document.getElementById('pin-section');
+                const ackSection = document.getElementById('acknowledge-section');
+
+                lockScreen.style.display = 'block';
+
                 if (warningCount < maxWarnings) {
-                    alert(`เตือนครั้งที่ ${warningCount}: คุณออกจากหน้าสอบ! (หากครบ ${maxWarnings} ครั้งระบบจะทำการล็อคหน้าจอ)`);
+                    badgeText.innerText = `เตือนครั้งที่ ${warningCount} / ${maxWarnings}`;
+                    titleText.innerText = "แจ้งเตือนการออกจากหน้าสอบ";
+                    descText.innerHTML = `คุณได้ทำการสลับแท็บหรือออกจากหน้าจอทำข้อสอบ<br>หากออกจากหน้าสอบครบ <b>${maxWarnings} ครั้ง</b> ระบบจะทำการล็อคหน้าจอทันที`;
+                    
+                    pinSection.style.display = 'none';
+                    ackSection.style.display = 'block';
                 } else {
-                    document.getElementById('lock-screen').style.display = 'block';
+                    badgeText.innerText = "🔒 ระบบถูกล็อคแล้ว";
+                    titleText.innerText = "หน้าจอถูกล็อคสมบูรณ์!";
+                    descText.innerHTML = "คุณออกจากหน้าสอบเกิน 3 ครั้ง <br><span style='color: #fca5a5;'>กรุณาแจ้งครูผู้สอนเพื่อใส่รหัสปลดล็อค</span>";
+                    
+                    pinSection.style.display = 'block';
+                    ackSection.style.display = 'none';
                 }
             }
         });
 
-        // ปลดล็อคโดยครู
+        function dismissWarning() {
+            document.getElementById('lock-screen').style.display = 'none';
+        }
+
         function unlockExam() {
             const inputPin = document.getElementById('teacher-pin').value;
             if (inputPin === TEACHER_PIN) {
@@ -270,11 +269,15 @@
             }
         }
 
-        // ฟังก์ชันส่งข้อสอบ
         function finishExam() {
             if (confirm("ยืนยันที่จะส่งข้อสอบหรือไม่?")) {
                 examStarted = false;
-                // บันทึกสถานะลงบราวเซอร์ว่าส่งข้อสอบแล้ว (เข้าสอบซ้ำไม่ได้)
+                const email = document.getElementById('student-email').value.trim().toLowerCase();
+                
+                // บันทึกอีเมลเข้าลิสต์ที่สอบเสร็จแล้ว
+                let submittedEmails = JSON.parse(localStorage.getItem("submitted_emails") || "[]");
+                submittedEmails.push(email);
+                localStorage.setItem("submitted_emails", JSON.stringify(submittedEmails));
                 localStorage.setItem("exam_submitted", "true");
 
                 document.getElementById('exam-section').style.display = 'none';
