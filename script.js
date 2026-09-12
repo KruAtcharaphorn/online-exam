@@ -1,8 +1,8 @@
 const CONFIG = {
     TEACHER_PIN: "999999",
-    SCHOOL_DOMAIN: "@blm.ac.th", // ตรวจสอบอีเมล @blm.ac.th เท่านั้น
-    GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec", // วาง URL Google Apps Script ของคุณที่นี่
-    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVS1PeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv",
+    SCHOOL_DOMAIN: "@blm.ac.th",
+    GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
+    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVS1PeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
     MAX_WARNINGS: 3,
     SUBMIT_DELAY_MS: 5000
 };
@@ -15,18 +15,68 @@ let state = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-    if (localStorage.getItem("exam_submitted") === "true") {
-        showSection("submitted-section");
-    }
+    // โหลดรายชื่อวิชาจาก Google Sheet
+    loadExamsFromSheet();
+
     const form = document.getElementById("student-info-form");
     if (form) form.addEventListener("submit", startExam);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 });
 
+// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV
+async function loadExamsFromSheet() {
+    const examSelect = document.getElementById("exam-select");
+    try {
+        const response = await fetch(CONFIG.EXAM_SHEET_CSV_URL);
+        const data = await response.text();
+        
+        const rows = data.split("\n").map(row => row.trim()).filter(row => row.length > 0);
+        examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
+
+        for (let i = 1; i < rows.length; i++) {
+            const cols = parseCSVRow(rows[i]);
+            if (cols.length >= 2) {
+                const subject = cols[0].replace(/^"|"$/g, '');
+                const url = cols[1].replace(/^"|"$/g, '');
+
+                if (subject && url) {
+                    const option = document.createElement("option");
+                    option.value = url;
+                    option.textContent = subject;
+                    examSelect.appendChild(option);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error loading exam list:", error);
+        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้</option>';
+    }
+}
+
+function parseCSVRow(row) {
+    const result = [];
+    let insideQuote = false;
+    let entry = '';
+    
+    for (let char of row) {
+        if (char === '"') {
+            insideQuote = !insideQuote;
+        } else if (char === ',' && !insideQuote) {
+            result.push(entry);
+            entry = '';
+        } else {
+            entry += char;
+        }
+    }
+    result.push(entry);
+    return result;
+}
+
 function startExam(e) {
     e.preventDefault();
     const email = document.getElementById("student-email").value.trim().toLowerCase();
     const examSelect = document.getElementById("exam-select");
+    const selectedSubject = examSelect.options[examSelect.selectedIndex].text;
 
     // ตรวจสอบอีเมลโรงเรียน @blm.ac.th
     if (!email.endsWith(CONFIG.SCHOOL_DOMAIN)) {
@@ -34,15 +84,8 @@ function startExam(e) {
         return;
     }
 
-    // ตรวจสอบการสอบซ้ำ (1 คนสอบได้ 1 ครั้ง)
-    const submittedEmails = JSON.parse(localStorage.getItem("submitted_emails") || "[]");
-    if (submittedEmails.includes(email)) {
-        alert("อีเมลนี้ได้ทำการเข้าสอบไปแล้ว ไม่สามารถสอบซ้ำได้");
-        return;
-    }
-
     state.currentEmail = email;
-    state.currentSubject = examSelect.options[examSelect.selectedIndex].text;
+    state.currentSubject = selectedSubject;
 
     document.getElementById("display-email").innerText = state.currentEmail;
     document.getElementById("display-subject").innerText = state.currentSubject;
@@ -61,17 +104,22 @@ function finishExam() {
     document.getElementById("finish-btn").style.display = "none";
     document.getElementById("loading-overlay").style.display = "block";
 
-    // หน่วงเวลา 5 วินาทีก่อนส่งข้อมูลลง Google Sheet
     setTimeout(() => {
         sendDataToGoogleSheet(state.currentEmail, state.currentSubject, finishTimestamp);
         
-        const submittedEmails = JSON.parse(localStorage.getItem("submitted_emails") || "[]");
-        submittedEmails.push(state.currentEmail);
-        localStorage.setItem("submitted_emails", JSON.stringify(submittedEmails));
-        localStorage.setItem("exam_submitted", "true");
+        // คืนค่าปุ่มยืนยันส่งข้อสอบและซ่อนสถานะกำลังโหลด
+        document.getElementById("finish-btn").style.display = "block";
+        document.getElementById("loading-overlay").style.display = "none";
 
         showSection("submitted-section");
     }, CONFIG.SUBMIT_DELAY_MS);
+}
+
+// ฟังก์ชั่นสำหรับกดกลับไปทำข้อสอบวิชาอื่นหรือส่วนอื่นต่อ
+function resetToChooseExam() {
+    state.examStarted = false;
+    state.warningCount = 0;
+    showSection("student-form-section");
 }
 
 function handleVisibilityChange() {
