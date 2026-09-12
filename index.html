@@ -38,17 +38,14 @@
             <h2>ลงชื่อเข้าสอบ</h2>
             <form id="student-info-form">
                 <div class="form-group">
-                    <label for="student-email">อีเมลนักเรียน (ใช้อีเมล @blm.ac.th เท่านั้น):</label>
-                    <input type="email" id="student-email" required placeholder="example@blm.ac.th">
-                </div>
-                <div class="form-group">
                     <label for="exam-select">เลือกวิชาสอบ:</label>
                     <select id="exam-select" required>
-                        <option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>
-                        <option value="https://docs.google.com/forms/d/e/1FAIpQLScWpQJEONTrTWXoTnF1ZVP3Ty17nQcinaKjCtXua34xeF1mFg/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 1 (วิทยาการคำนวณ) ม.1/2569</option>
-                        <option value="https://docs.google.com/forms/d/e/1FAIpQLSfo65x8v39qQHtUtqxzQTPgOcM7hh6R5hhwoDopcxeqRtMr8w/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 5 (วิทยาการคำนวณ ม.3/2569)</option>
-                        <option value="https://docs.google.com/forms/d/e/1FAIpQLSelQKWyoXo3tvhWUulx2qfJCp6kXGbk45CzD3jVDHOEUzQuIg/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 1 (วิทยาการคำนวณ) ม.4/2569</option>
+                       <option value="" disabled selected>-- กำลังโหลดรายวิชา... --</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="student-email">อีเมลนักเรียน (ใช้อีเมล @blm.ac.th เท่านั้น):</label>
+                    <input type="email" id="student-email" required placeholder="example@blm.ac.th">
                 </div>
                 <button type="submit">เริ่มทำข้อสอบ</button>
             </form>
