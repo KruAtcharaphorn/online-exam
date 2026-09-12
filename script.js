@@ -15,7 +15,6 @@ let state = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-    // โหลดรายชื่อวิชาจาก Google Sheet
     loadExamsFromSheet();
 
     const form = document.getElementById("student-info-form");
@@ -26,18 +25,27 @@ document.addEventListener("DOMContentLoaded", () => {
 // ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV
 async function loadExamsFromSheet() {
     const examSelect = document.getElementById("exam-select");
+    if (!examSelect) return;
+
     try {
-        const response = await fetch(CONFIG.EXAM_SHEET_CSV_URL);
-        const data = await response.text();
+        const cleanUrl = CONFIG.EXAM_SHEET_CSV_URL.trim();
+        const response = await fetch(cleanUrl);
         
-        const rows = data.split("\n").map(row => row.trim()).filter(row => row.length > 0);
+        if (!response.ok) {
+            throw new Error(`HTTP Error Status: ${response.status}`);
+        }
+
+        const data = await response.text();
+        const rows = data.split(/\r?\n/).map(row => row.trim()).filter(row => row.length > 0);
+        
         examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
 
+        // วนลูปอ่านข้อมูลเริ่มจากแถวที่ 2 (เว้นแถวหัวข้อ A1, B1)
         for (let i = 1; i < rows.length; i++) {
             const cols = parseCSVRow(rows[i]);
             if (cols.length >= 2) {
-                const subject = cols[0].replace(/^"|"$/g, '');
-                const url = cols[1].replace(/^"|"$/g, '');
+                const subject = cols[0].replace(/^"|"$/g, '').trim();
+                const url = cols[1].replace(/^"|"$/g, '').trim();
 
                 if (subject && url) {
                     const option = document.createElement("option");
@@ -49,7 +57,7 @@ async function loadExamsFromSheet() {
         }
     } catch (error) {
         console.error("Error loading exam list:", error);
-        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้</option>';
+        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้ (เช็คสิทธิ์การแชร์ Sheet)</option>';
     }
 }
 
@@ -76,9 +84,14 @@ function startExam(e) {
     e.preventDefault();
     const email = document.getElementById("student-email").value.trim().toLowerCase();
     const examSelect = document.getElementById("exam-select");
+    
+    if (!examSelect.value) {
+        alert("กรุณาเลือกรายวิชาสอบก่อนครับ");
+        return;
+    }
+
     const selectedSubject = examSelect.options[examSelect.selectedIndex].text;
 
-    // ตรวจสอบอีเมลโรงเรียน @blm.ac.th
     if (!email.endsWith(CONFIG.SCHOOL_DOMAIN)) {
         alert(`กรุณาใช้อีเมลของโรงเรียนเท่านั้น (${CONFIG.SCHOOL_DOMAIN})`);
         return;
@@ -107,7 +120,6 @@ function finishExam() {
     setTimeout(() => {
         sendDataToGoogleSheet(state.currentEmail, state.currentSubject, finishTimestamp);
         
-        // คืนค่าปุ่มยืนยันส่งข้อสอบและซ่อนสถานะกำลังโหลด
         document.getElementById("finish-btn").style.display = "block";
         document.getElementById("loading-overlay").style.display = "none";
 
@@ -115,7 +127,6 @@ function finishExam() {
     }, CONFIG.SUBMIT_DELAY_MS);
 }
 
-// ฟังก์ชั่นสำหรับกดกลับไปทำข้อสอบวิชาอื่นหรือส่วนอื่นต่อ
 function resetToChooseExam() {
     state.examStarted = false;
     state.warningCount = 0;
