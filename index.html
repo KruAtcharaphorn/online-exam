@@ -9,7 +9,7 @@
         .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        input[type="text"], input[type="email"], input[type="password"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
         button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
         button:hover { background-color: #0056b3; }
         .warning { color: red; font-size: 14px; margin-top: 5px; }
@@ -48,6 +48,15 @@
                     <label>ชั้นเรียน:</label>
                     <input type="text" id="student-class" required placeholder="ม.3/1">
                 </div>
+                <!-- ส่วนที่เพิ่ม: ตัวเลือกข้อสอบ -->
+                <div class="form-group">
+                    <label for="exam-select">เลือกวิชาสอบ:</label>
+                    <select id="exam-select" required>
+                        <option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true">วิชาคณิตศาสตร์</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true">วิชาวิทยาศาสตร์</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true">วิชาภาษาอังกฤษ</option>
+                    </select>
                 </div>
                 <button type="submit">เริ่มทำข้อสอบ</button>
             </form>
@@ -56,13 +65,13 @@
         <!-- 2. ส่วนหน้าทำข้อสอบ -->
         <div id="exam-section">
             <h2>ข้อสอบออนไลน์</h2>
-            <p><b>นักเรียน:</b> <span id="display-name"></span> | <b>ชั้น:</b> <span id="display-class"></span></p>
+            <p><b>นักเรียน:</b> <span id="display-name"></span> | <b>ชั้น:</b> <span id="display-class"></span> | <b>วิชา:</b> <span id="display-subject"></span></p>
             <hr>
             
-            <iframe src="https://docs.google.com/forms/d/e/1FAIpQLScXU4BrUco7HyfmV5JRSGrxwjksRZm6H4ykQ09zUnRQjWlxnQ/viewform?embedded=true" width="100%" height="800" frameborder="0" marginheight="0" marginwidth="0">กำลังโหลด…</iframe>
+            <iframe id="exam-iframe" src="" width="100%" height="800" frameborder="0" marginheight="0" marginwidth="0">กำลังโหลด…</iframe>
 
-<br><br>
-<button onclick="finishExam()" style="background-color: #28a745;">กดยืนยันเมื่อส่ง Google Forms เรียบร้อยแล้ว</button>
+            <br><br>
+            <button onclick="finishExam()" style="background-color: #28a745;">กดยืนยันเมื่อส่ง Google Forms เรียบร้อยแล้ว</button>
         </div>
 
         <!-- 3. ส่วนแสดงเมื่อส่งข้อสอบแล้ว -->
@@ -102,9 +111,18 @@
             
             const name = document.getElementById('student-name').value;
             const studentClass = document.getElementById('student-class').value;
+            const examSelect = document.getElementById('exam-select');
+            
+            const selectedUrl = examSelect.value;
+            const selectedSubject = examSelect.options[examSelect.selectedIndex].text;
 
+            // แสดงข้อมูลนักเรียนและชื่อวิชา
             document.getElementById('display-name').innerText = name;
             document.getElementById('display-class').innerText = studentClass;
+            document.getElementById('display-subject').innerText = selectedSubject;
+
+            // กำหนดลิงก์ Google Forms ตามวิชาที่เลือก
+            document.getElementById('exam-iframe').src = selectedUrl;
 
             document.getElementById('student-form-section').style.display = 'none';
             document.getElementById('exam-section').style.display = 'block';
@@ -138,7 +156,6 @@
         }
 
         // ฟังก์ชันส่งข้อสอบ
-       // ฟังก์ชันส่งข้อสอบ
         function finishExam() {
             if (confirm("ยืนยันที่จะส่งข้อสอบหรือไม่?")) {
                 examStarted = false;
@@ -149,9 +166,6 @@
                 document.getElementById('submitted-section').style.display = 'block';
             }
         }
-}
-    }
-</script>
+    </script>
 </body>
 </html>
-
