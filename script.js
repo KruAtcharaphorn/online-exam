@@ -31,7 +31,7 @@ async function loadExamsFromSheet() {
         const cacheBuster = "&_t=" + new Date().getTime();
         const rawUrl = CONFIG.EXAM_SHEET_CSV_URL.trim() + cacheBuster;
         
-        // ใช้ Proxy ข้ามการบล็อกของเบราว์เซอร์
+        // ใช้ Proxy ดึงข้อมูลข้ามโดเมน
         const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
         
         const response = await fetch(proxyUrl);
