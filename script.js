@@ -15,7 +15,6 @@ let state = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-    // โหลดรายชื่อวิชาจาก Google Sheet
     loadExamsFromSheet();
 
     const form = document.getElementById("student-info-form");
@@ -23,27 +22,31 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 });
 
-// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV (แก้ไขโดยใช้ gviz endpoint เพื่อเลี่ยง CORS)
+// ฟังก์ชั่นดึงข้อมูลวิชาผ่าน CORS Proxy
 async function loadExamsFromSheet() {
     const examSelect = document.getElementById("exam-select");
     if (!examSelect) return;
 
     try {
-        // ดึง CSV ผ่าน Google Visualization API ตรงๆ เลี่ยงการติด CORS
-        const sheetBaseUrl = "https://docs.google.com/spreadsheets/d/1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/gviz/tq?tqx=out:csv";
-        const response = await fetch(sheetBaseUrl);
-
+        const cacheBuster = "&_t=" + new Date().getTime();
+        const rawUrl = CONFIG.EXAM_SHEET_CSV_URL.trim() + cacheBuster;
+        
+        // ใช้ Proxy ข้ามการบล็อกของเบราว์เซอร์
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
+        
+        const response = await fetch(proxyUrl);
+        
         if (!response.ok) {
             throw new Error(`HTTP Error Status: ${response.status}`);
         }
 
         const data = await response.text();
         const rows = data.split(/\r?\n/).map(row => row.trim()).filter(row => row.length > 0);
-
+        
         examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
 
         let loadedCount = 0;
-        // วนลูปอ่านข้อมูลเริ่มจากแถวที่ 2 (เว้นแถวหัวข้อ A1, B1)
+
         for (let i = 1; i < rows.length; i++) {
             const cols = parseCSVRow(rows[i]);
             if (cols.length >= 2) {
@@ -101,7 +104,6 @@ function startExam(e) {
 
     const selectedSubject = examSelect.options[examSelect.selectedIndex].text;
 
-    // ตรวจสอบอีเมลโรงเรียน @blm.ac.th
     if (!email.endsWith(CONFIG.SCHOOL_DOMAIN)) {
         alert(`กรุณาใช้อีเมลของโรงเรียนเท่านั้น (${CONFIG.SCHOOL_DOMAIN})`);
         return;
@@ -129,8 +131,7 @@ function finishExam() {
 
     setTimeout(() => {
         sendDataToGoogleSheet(state.currentEmail, state.currentSubject, finishTimestamp);
-
-        // คืนค่าปุ่มยืนยันส่งข้อสอบและซ่อนสถานะกำลังโหลด
+        
         document.getElementById("finish-btn").style.display = "block";
         document.getElementById("loading-overlay").style.display = "none";
 
@@ -138,7 +139,6 @@ function finishExam() {
     }, CONFIG.SUBMIT_DELAY_MS);
 }
 
-// ฟังก์ชั่นสำหรับกดกลับไปทำข้อสอบวิชาอื่นหรือส่วนอื่นต่อ
 function resetToChooseExam() {
     state.examStarted = false;
     state.warningCount = 0;
