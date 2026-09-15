@@ -2,8 +2,7 @@ const CONFIG = {
     TEACHER_PIN: "999999",
     SCHOOL_DOMAIN: "@blm.ac.th",
     GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
-    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVS1PeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
-    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVS1PeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
+    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
     MAX_WARNINGS: 3,
     SUBMIT_DELAY_MS: 5000
 };
@@ -20,17 +19,20 @@ document.addEventListener("DOMContentLoaded", () => {
     loadExamsFromSheet();
 
     const form = document.getElementById("student-info-form");
-@@ -26,18 +25,27 @@
-// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV
+    if (form) form.addEventListener("submit", startExam);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+});
+
+// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV (แก้ไขโดยใช้ gviz endpoint เพื่อเลี่ยง CORS)
 async function loadExamsFromSheet() {
     const examSelect = document.getElementById("exam-select");
     if (!examSelect) return;
 
     try {
-        const response = await fetch(CONFIG.EXAM_SHEET_CSV_URL);
-        const cleanUrl = CONFIG.EXAM_SHEET_CSV_URL.trim();
-        const response = await fetch(cleanUrl);
-        
+        // ดึง CSV ผ่าน Google Visualization API ตรงๆ เลี่ยงการติด CORS
+        const sheetBaseUrl = "https://docs.google.com/spreadsheets/d/1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/gviz/tq?tqx=out:csv";
+        const response = await fetch(sheetBaseUrl);
+
         if (!response.ok) {
             throw new Error(`HTTP Error Status: ${response.status}`);
         }
@@ -38,30 +40,56 @@ async function loadExamsFromSheet() {
         const data = await response.text();
         const rows = data.split(/\r?\n/).map(row => row.trim()).filter(row => row.length > 0);
 
-        const rows = data.split("\n").map(row => row.trim()).filter(row => row.length > 0);
         examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
 
+        let loadedCount = 0;
         // วนลูปอ่านข้อมูลเริ่มจากแถวที่ 2 (เว้นแถวหัวข้อ A1, B1)
         for (let i = 1; i < rows.length; i++) {
             const cols = parseCSVRow(rows[i]);
             if (cols.length >= 2) {
-                const subject = cols[0].replace(/^"|"$/g, '');
-                const url = cols[1].replace(/^"|"$/g, '');
                 const subject = cols[0].replace(/^"|"$/g, '').trim();
                 const url = cols[1].replace(/^"|"$/g, '').trim();
 
                 if (subject && url) {
                     const option = document.createElement("option");
-@@ -49,7 +57,7 @@
+                    option.value = url;
+                    option.textContent = subject;
+                    examSelect.appendChild(option);
+                    loadedCount++;
+                }
+            }
         }
+
+        if (loadedCount === 0) {
+            examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่พบข้อมูลรายวิชาใน Sheet</option>';
+        }
+
     } catch (error) {
         console.error("Error loading exam list:", error);
-        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้</option>';
         examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้ (เช็คสิทธิ์การแชร์ Sheet)</option>';
     }
 }
 
-@@ -76,9 +84,14 @@
+function parseCSVRow(row) {
+    const result = [];
+    let insideQuote = false;
+    let entry = '';
+    
+    for (let char of row) {
+        if (char === '"') {
+            insideQuote = !insideQuote;
+        } else if (char === ',' && !insideQuote) {
+            result.push(entry);
+            entry = '';
+        } else {
+            entry += char;
+        }
+    }
+    result.push(entry);
+    return result;
+}
+
+function startExam(e) {
     e.preventDefault();
     const email = document.getElementById("student-email").value.trim().toLowerCase();
     const examSelect = document.getElementById("exam-select");
@@ -77,7 +105,28 @@ async function loadExamsFromSheet() {
     if (!email.endsWith(CONFIG.SCHOOL_DOMAIN)) {
         alert(`กรุณาใช้อีเมลของโรงเรียนเท่านั้น (${CONFIG.SCHOOL_DOMAIN})`);
         return;
-@@ -107,78 +120,76 @@
+    }
+
+    state.currentEmail = email;
+    state.currentSubject = selectedSubject;
+
+    document.getElementById("display-email").innerText = state.currentEmail;
+    document.getElementById("display-subject").innerText = state.currentSubject;
+    document.getElementById("exam-iframe").src = examSelect.value;
+
+    showSection("exam-section");
+    state.examStarted = true;
+}
+
+function finishExam() {
+    if (!confirm("ยืนยันที่จะส่งข้อสอบหรือไม่?")) return;
+
+    state.examStarted = false;
+    const finishTimestamp = new Date().toLocaleString("th-TH");
+
+    document.getElementById("finish-btn").style.display = "none";
+    document.getElementById("loading-overlay").style.display = "block";
+
     setTimeout(() => {
         sendDataToGoogleSheet(state.currentEmail, state.currentSubject, finishTimestamp);
 
