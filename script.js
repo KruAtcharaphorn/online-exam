@@ -2,7 +2,7 @@ const CONFIG = {
     TEACHER_PIN: "999999",
     SCHOOL_DOMAIN: "@blm.ac.th",
     GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
-    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVS1PeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
+    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
     MAX_WARNINGS: 3,
     SUBMIT_DELAY_MS: 5000
 };
@@ -22,48 +22,42 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 });
 
-// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติ
+// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV
 async function loadExamsFromSheet() {
     const examSelect = document.getElementById("exam-select");
     if (!examSelect) return;
 
     try {
-        const cacheBuster = "&_t=" + new Date().getTime();
-        const rawUrl = CONFIG.EXAM_SHEET_CSV_URL.trim() + cacheBuster;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`;
+        const cleanUrl = CONFIG.EXAM_SHEET_CSV_URL.trim();
+        const response = await fetch(cleanUrl);
         
-        let response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("Network response was not ok");
+        if (!response.ok) {
+            throw new Error(`HTTP Error Status: ${response.status}`);
+        }
 
         const data = await response.text();
         const rows = data.split(/\r?\n/).map(row => row.trim()).filter(row => row.length > 0);
         
         examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
 
-        let loadedCount = 0;
+        // วนลูปอ่านข้อมูลเริ่มจากแถวที่ 2 (เว้นแถวหัวข้อ A1, B1)
         for (let i = 1; i < rows.length; i++) {
             const cols = parseCSVRow(rows[i]);
             if (cols.length >= 2) {
                 const subject = cols[0].replace(/^"|"$/g, '').trim();
                 const url = cols[1].replace(/^"|"$/g, '').trim();
 
-                if (subject && url && (url.includes("docs.google.com") || url.startsWith("http"))) {
+                if (subject && url) {
                     const option = document.createElement("option");
                     option.value = url;
                     option.textContent = subject;
                     examSelect.appendChild(option);
-                    loadedCount++;
                 }
             }
         }
-
-        if (loadedCount === 0) {
-            examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่พบข้อมูลรายวิชา</option>';
-        }
-
     } catch (error) {
         console.error("Error loading exam list:", error);
-        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้</option>';
+        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้ (เช็คสิทธิ์การแชร์ Sheet)</option>';
     }
 }
 
@@ -114,17 +108,12 @@ function startExam(e) {
     state.examStarted = true;
 }
 
-// ฟังก์ชั่นส่งข้อสอบ (รองรับการสั่งส่งอัตโนมัติเมื่อละเมิดกฎ)
-function finishExam(isAutoSubmit = false) {
-    if (!isAutoSubmit && !confirm("ยืนยันที่จะส่งข้อสอบหรือไม่?")) return;
+function finishExam() {
+    if (!confirm("ยืนยันที่จะส่งข้อสอบหรือไม่?")) return;
 
     state.examStarted = false;
     const finishTimestamp = new Date().toLocaleString("th-TH");
 
-    // ซ่อน Lock Screen (ถ้าเปิดอยู่)
-    document.getElementById("lock-screen").style.display = "none";
-
-    showSection("exam-section");
     document.getElementById("finish-btn").style.display = "none";
     document.getElementById("loading-overlay").style.display = "block";
 
@@ -134,38 +123,53 @@ function finishExam(isAutoSubmit = false) {
         document.getElementById("finish-btn").style.display = "block";
         document.getElementById("loading-overlay").style.display = "none";
 
-        if (isAutoSubmit) {
-            const submitTitle = document.querySelector("#submitted-section h2");
-            const submitDesc = document.querySelector("#submitted-section p");
-            if (submitTitle) submitTitle.innerText = "🚨 ระบบทำการส่งข้อสอบอัตโนมัติ!";
-            if (submitDesc) submitDesc.innerHTML = "เนื่องจากคุณออกจากหน้าจอทำข้อสอบเกิน 3 ครั้ง <br>ระบบได้ทำการบันทึกและส่งข้อสอบของคุณเรียบร้อยแล้ว";
-        }
-
         showSection("submitted-section");
     }, CONFIG.SUBMIT_DELAY_MS);
 }
 
-// ฟังก์ชั่นตรวจจับการสลับแท็บ/ออกจากหน้าจอ
+function resetToChooseExam() {
+    state.examStarted = false;
+    state.warningCount = 0;
+    showSection("student-form-section");
+}
+
 function handleVisibilityChange() {
     if (document.hidden && state.examStarted) {
         state.warningCount++;
+        const lockScreen = document.getElementById("lock-screen");
+        const badgeText = document.getElementById("warning-badge-text");
+        const titleText = document.getElementById("lock-title-text");
+        const descText = document.getElementById("lock-desc-text");
+        const pinSection = document.getElementById("pin-section");
+        const ackSection = document.getElementById("acknowledge-section");
 
-        if (state.warningCount >= CONFIG.MAX_WARNINGS) {
-            // ละเมิดครบ 3 ครั้ง -> ส่งข้อสอบทันที
-            alert("⚠️ คุณออกจากหน้าจอทำข้อสอบครบ 3 ครั้ง ระบบกำลังส่งข้อสอบของคุณอัตโนมัติ!");
-            finishExam(true);
-        } else {
-            // เตือนครั้งที่ 1 หรือ 2
-            const lockScreen = document.getElementById("lock-screen");
-            const badgeText = document.getElementById("warning-badge-text");
-            const titleText = document.getElementById("lock-title-text");
-            const descText = document.getElementById("lock-desc-text");
+        lockScreen.style.display = "block";
 
-            lockScreen.style.display = "block";
+        if (state.warningCount < CONFIG.MAX_WARNINGS) {
             badgeText.innerText = `เตือนครั้งที่ ${state.warningCount} / ${CONFIG.MAX_WARNINGS}`;
             titleText.innerText = "แจ้งเตือนการออกจากหน้าสอบ";
-            descText.innerHTML = `คุณได้ทำการสลับแท็บหรือออกจากหน้าจอทำข้อสอบ<br>หากออกจากหน้าสอบครบ <b>${CONFIG.MAX_WARNINGS} ครั้ง</b> ระบบจะทำการส่งข้อสอบทันที!`;
+            descText.innerHTML = `คุณได้ทำการสลับแท็บหรือออกจากหน้าจอทำข้อสอบ<br>หากออกจากหน้าสอบครบ <b>${CONFIG.MAX_WARNINGS} ครั้ง</b> ระบบจะทำการล็อคหน้าจอทันที`;
+            pinSection.style.display = "none";
+            ackSection.style.display = "block";
+        } else {
+            badgeText.innerText = "🔒 ระบบถูกล็อคแล้ว";
+            titleText.innerText = "หน้าจอถูกล็อคสมบูรณ์!";
+            descText.innerHTML = "คุณออกจากหน้าสอบเกิน 3 ครั้ง <br><span style='color: #fca5a5;'>กรุณาแจ้งครูผู้สอนเพื่อใส่รหัสปลดล็อค</span>";
+            pinSection.style.display = "block";
+            ackSection.style.display = "none";
         }
+    }
+}
+
+function unlockExam() {
+    const pinInput = document.getElementById("teacher-pin");
+    if (pinInput.value === CONFIG.TEACHER_PIN) {
+        state.warningCount = 0;
+        document.getElementById("lock-screen").style.display = "none";
+        pinInput.value = "";
+        alert("ปลดล็อคเรียบร้อยแล้ว นักเรียนสามารถทำข้อสอบต่อได้");
+    } else {
+        alert("รหัสผ่านไม่ถูกต้อง");
     }
 }
 
