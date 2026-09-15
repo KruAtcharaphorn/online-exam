@@ -1,8 +1,8 @@
 const CONFIG = {
     TEACHER_PIN: "999999",
     SCHOOL_DOMAIN: "@blm.ac.th",
-    GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
-    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
+    // ⚠️ นำ Web App URL ที่ได้จาก Google Apps Script มาวางตรงนี้
+    GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec", 
     MAX_WARNINGS: 3,
     SUBMIT_DELAY_MS: 5000
 };
@@ -22,76 +22,50 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 });
 
-// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV (แก้ไขปัญหา CORS & Cache)
+// ฟังก์ชั่นดึงข้อมูลวิชาผ่าน Google Apps Script โดยตรง (เสถียร 100% ไม่ติด CORS)
 async function loadExamsFromSheet() {
     const examSelect = document.getElementById("exam-select");
     if (!examSelect) return;
 
     try {
-        // 🛠️ 1. เติม timestamp เพื่อบังคับไม่ให้ติดแคชของ Google
-        const cacheBuster = "&_t=" + new Date().getTime();
-        const rawUrl = CONFIG.EXAM_SHEET_CSV_URL.trim() + cacheBuster;
-        
-        // 🛠️ 2. ดึงข้อมูลผ่าน CORS Proxy (AllOrigins) เพื่อแก้ปัญหาโดนบล็อก CORS
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`;
-        
-        const response = await fetch(proxyUrl);
+        if (CONFIG.GOOGLE_SCRIPT_URL.includes("YOUR_SCRIPT_ID")) {
+            examSelect.innerHTML = '<option value="" disabled selected>❌ กรุณาใส่ GOOGLE_SCRIPT_URL ใน CONFIG ให้ถูกต้อง</option>';
+            return;
+        }
+
+        const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL);
         
         if (!response.ok) {
             throw new Error(`HTTP Error Status: ${response.status}`);
         }
 
-        const data = await response.text();
-        const rows = data.split(/\r?\n/).map(row => row.trim()).filter(row => row.length > 0);
+        const data = await response.json();
         
         examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
 
-        let loadedCount = 0;
-
-        // วนลูปอ่านข้อมูลเริ่มจากแถวที่ 2 (เว้นแถวหัวข้อ A1, B1)
-        for (let i = 1; i < rows.length; i++) {
-            const cols = parseCSVRow(rows[i]);
-            if (cols.length >= 2) {
-                const subject = cols[0].replace(/^"|"$/g, '').trim();
-                const url = cols[1].replace(/^"|"$/g, '').trim();
-
-                if (subject && url && (url.includes("docs.google.com") || url.startsWith("http"))) {
+        if (Array.isArray(data) && data.length > 0) {
+            let loadedCount = 0;
+            data.forEach(item => {
+                if (item.subject && item.url) {
                     const option = document.createElement("option");
-                    option.value = url;
-                    option.textContent = subject;
+                    option.value = item.url;
+                    option.textContent = item.subject;
                     examSelect.appendChild(option);
                     loadedCount++;
                 }
-            }
-        }
+            });
 
-        if (loadedCount === 0) {
+            if (loadedCount === 0) {
+                examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่พบข้อมูลรายวิชาใน Sheet</option>';
+            }
+        } else {
             examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่พบข้อมูลรายวิชาใน Sheet</option>';
         }
 
     } catch (error) {
         console.error("Error loading exam list:", error);
-        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้ (เช็คสิทธิ์การแชร์ Sheet)</option>';
+        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้</option>';
     }
-}
-
-function parseCSVRow(row) {
-    const result = [];
-    let insideQuote = false;
-    let entry = '';
-    
-    for (let char of row) {
-        if (char === '"') {
-            insideQuote = !insideQuote;
-        } else if (char === ',' && !insideQuote) {
-            result.push(entry);
-            entry = '';
-        } else {
-            entry += char;
-        }
-    }
-    result.push(entry);
-    return result;
 }
 
 function startExam(e) {
