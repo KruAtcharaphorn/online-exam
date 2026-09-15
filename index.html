@@ -9,7 +9,7 @@
         .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="email"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
+        input[type="email"], input[type="password"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
         button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
         button:hover { background-color: #0056b3; }
         
@@ -26,7 +26,8 @@
         .lock-title { color: #ef4444; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
         .lock-desc { color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
         .warning-badge { display: inline-block; background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 15px; }
-        .lock-btn { width: 100% !important; background-color: #3b82f6 !important; padding: 12px !important; border-radius: 8px !important; font-weight: bold; color: white; border: none; cursor: pointer; }
+        .lock-input { width: 100% !important; padding: 12px !important; border-radius: 8px !important; border: 1px solid #475569 !important; background-color: #0f172a !important; color: white !important; text-align: center; font-size: 18px !important; margin-bottom: 15px !important; }
+        .lock-btn { width: 100% !important; background-color: #ef4444 !important; padding: 12px !important; border-radius: 8px !important; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -57,7 +58,7 @@
             <hr>
             <iframe id="exam-iframe" src="" width="100%" height="800" frameborder="0"></iframe>
             <br><br>
-            <button id="finish-btn" onclick="finishExam(false)" style="background-color: #28a745;">กดยืนยันเมื่อส่ง Google Forms เรียบร้อยแล้ว</button>
+            <button id="finish-btn" onclick="finishExam()" style="background-color: #28a745;">กดยืนยันเมื่อส่ง Google Forms เรียบร้อยแล้ว</button>
             <div id="loading-overlay">⏳ กำลังบันทึกข้อมูล กรุณารอ 5 วินาที...</div>
         </div>
 
@@ -68,19 +69,24 @@
         </div>
     </div>
 
-    <!-- ป๊อปอัพหน้าจอล็อคเตือนการสลับแท็บ -->
+    <!-- ป๊อปอัพหน้าจอล็อค -->
     <div id="lock-screen">
         <div class="lock-card">
             <div class="lock-icon">⚠️</div>
             <div class="warning-badge" id="warning-badge-text">เตือนครั้งที่ 1 / 3</div>
             <h2 class="lock-title" id="lock-title-text">แจ้งเตือนการออกจากหน้าสอบ</h2>
             <p class="lock-desc" id="lock-desc-text">คุณได้ทำการสลับแท็บหรือออกจากหน้าจอทำข้อสอบ</p>
+            <div id="pin-section" style="display: none;">
+                <input type="password" id="teacher-pin" class="lock-input" placeholder="กรอกรหัสครูผู้สอน">
+                <button onclick="unlockExam()" class="lock-btn">ปลดล็อคหน้าจอ</button>
+            </div>
             <div id="acknowledge-section">
-                <button onclick="dismissWarning()" class="lock-btn">รับทราบ และกลับไปทำข้อสอบ</button>
+                <button onclick="dismissWarning()" class="lock-btn" style="background-color: #3b82f6 !important;">รับทราบ และกลับไปทำข้อสอบ</button>
             </div>
         </div>
     </div>
 
+    <!-- เรียกใช้ไฟล์ JavaScript ก่อนปิด </body> เพียงที่เดียว -->
     <script src="script.js"></script>
 </body>
-</html>
+</html>	
