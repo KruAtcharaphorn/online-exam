@@ -2,7 +2,7 @@ const CONFIG = {
     TEACHER_PIN: "999999",
     SCHOOL_DOMAIN: "@blm.ac.th",
     // ⚠️ นำ URL เว็บแอปจาก Apps Script มาวางตรงนี้
-    GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/ใส่_ID_ตรงนี้/exec", 
+    GOOGLE_SCRIPT_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
     MAX_WARNINGS: 3,
     SUBMIT_DELAY_MS: 5000
 };
