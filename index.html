@@ -12,7 +12,7 @@
         input[type="email"], input[type="password"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
         button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
         button:hover { background-color: #0056b3; }
-        
+
         #exam-section, #submitted-section, #loading-overlay { display: none; }
         #submitted-section { text-align: center; color: green; }
         #loading-overlay { text-align: center; color: #007bff; margin-top: 15px; font-weight: bold; }
@@ -38,8 +38,16 @@
             <h2>ลงชื่อเข้าสอบ</h2>
             <form id="student-info-form">
                 <div class="form-group">
+                    <label for="student-email">อีเมลนักเรียน (ใช้อีเมล @blm.ac.th เท่านั้น):</label>
+                    <input type="email" id="student-email" required placeholder="example@blm.ac.th">
+                </div>
+                <div class="form-group">
                     <label for="exam-select">เลือกวิชาสอบ:</label>
                     <select id="exam-select" required>
+                        <option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLScWpQJEONTrTWXoTnF1ZVP3Ty17nQcinaKjCtXua34xeF1mFg/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 1 (วิทยาการคำนวณ) ม.1/2569</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLSfo65x8v39qQHtUtqxzQTPgOcM7hh6R5hhwoDopcxeqRtMr8w/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 5 (วิทยาการคำนวณ ม.3/2569)</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLSelQKWyoXo3tvhWUulx2qfJCp6kXGbk45CzD3jVDHOEUzQuIg/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 1 (วิทยาการคำนวณ) ม.4/2569</option>
                        <option value="" disabled selected>-- กำลังโหลดรายวิชา... --</option>
                     </select>
                 </div>
@@ -89,4 +97,4 @@
     <!-- เรียกใช้ไฟล์ JavaScript ก่อนปิด </body> เพียงที่เดียว -->
     <script src="script.js"></script>
 </body>
-</html>	
+</html>
