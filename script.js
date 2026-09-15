@@ -2,7 +2,7 @@ const CONFIG = {
     TEACHER_PIN: "999999",
     SCHOOL_DOMAIN: "@blm.ac.th",
     GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
-    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
+    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVS1PeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
     MAX_WARNINGS: 3,
     SUBMIT_DELAY_MS: 5000
 };
@@ -22,14 +22,20 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 });
 
-// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV
+// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV (แก้ไขปัญหา CORS & Cache)
 async function loadExamsFromSheet() {
     const examSelect = document.getElementById("exam-select");
     if (!examSelect) return;
 
     try {
-        const cleanUrl = CONFIG.EXAM_SHEET_CSV_URL.trim();
-        const response = await fetch(cleanUrl);
+        // 🛠️ 1. เติม timestamp เพื่อบังคับไม่ให้ติดแคชของ Google
+        const cacheBuster = "&_t=" + new Date().getTime();
+        const rawUrl = CONFIG.EXAM_SHEET_CSV_URL.trim() + cacheBuster;
+        
+        // 🛠️ 2. ดึงข้อมูลผ่าน CORS Proxy (AllOrigins) เพื่อแก้ปัญหาโดนบล็อก CORS
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`;
+        
+        const response = await fetch(proxyUrl);
         
         if (!response.ok) {
             throw new Error(`HTTP Error Status: ${response.status}`);
@@ -40,6 +46,8 @@ async function loadExamsFromSheet() {
         
         examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
 
+        let loadedCount = 0;
+
         // วนลูปอ่านข้อมูลเริ่มจากแถวที่ 2 (เว้นแถวหัวข้อ A1, B1)
         for (let i = 1; i < rows.length; i++) {
             const cols = parseCSVRow(rows[i]);
@@ -47,14 +55,20 @@ async function loadExamsFromSheet() {
                 const subject = cols[0].replace(/^"|"$/g, '').trim();
                 const url = cols[1].replace(/^"|"$/g, '').trim();
 
-                if (subject && url) {
+                if (subject && url && (url.includes("docs.google.com") || url.startsWith("http"))) {
                     const option = document.createElement("option");
                     option.value = url;
                     option.textContent = subject;
                     examSelect.appendChild(option);
+                    loadedCount++;
                 }
             }
         }
+
+        if (loadedCount === 0) {
+            examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่พบข้อมูลรายวิชาใน Sheet</option>';
+        }
+
     } catch (error) {
         console.error("Error loading exam list:", error);
         examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้ (เช็คสิทธิ์การแชร์ Sheet)</option>';
