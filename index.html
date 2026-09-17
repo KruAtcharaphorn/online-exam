@@ -2,107 +2,32 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <!-- กำหนด Viewport รองรับมือถือทุกขนาด ไม่ให้ซูมผิดปกติ -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบเข้าสอบออนไลน์</title>
     <style>
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
-            padding: 15px; 
-            background-color: #f5f5f5; 
-        }
-        .container { 
-            max-width: 700px; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 25px 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-        }
-        h2 {
-            font-size: 20px;
-            margin-top: 0;
-            color: #1e293b;
-        }
-        .form-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 15px; }
-        
-        input[type="email"], input[type="password"], select { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #ccc; 
-            border-radius: 8px; 
-            font-size: 16px; /* 16px ช่วยป้องกัน iOS ซูมเองอัตโนมัติ */
-            background-color: #fff;
-        }
-        
-        button { 
-            background-color: #007bff; 
-            color: white; 
-            padding: 14px 20px; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            font-weight: bold;
-            width: 100%; 
-            transition: background 0.2s;
-        }
-        button:active { background-color: #0056b3; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="email"], input[type="password"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
+        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background-color: #0056b3; }
 
         #exam-section, #submitted-section, #loading-overlay { display: none; }
-        #submitted-section { text-align: center; color: green; padding: 20px 0; }
+        #submitted-section { text-align: center; color: green; }
         #loading-overlay { text-align: center; color: #007bff; margin-top: 15px; font-weight: bold; }
 
-        /* ปรับ iframe ให้ปรับขนาดตามความสูงหน้าจอมือถือ */
-        .iframe-container {
-            width: 100%;
-            height: 70vh; 
-            min-height: 450px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #ddd;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: 0;
-        }
-
-        /* ป๊อปอัพล็อคหน้าจอ (Responsive) */
         #lock-screen {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); color: white; text-align: center; z-index: 9999;
-            padding: 20px;
-            overflow-y: auto;
         }
-        .lock-card { 
-            background: #1e293b; 
-            max-width: 450px; 
-            margin: 5vh auto 0; 
-            padding: 30px 20px; 
-            border-radius: 16px; 
-            border: 1px solid #334155; 
-        }
-        .lock-icon { font-size: 45px; margin-bottom: 10px; }
-        .lock-title { color: #ef4444; font-size: 20px; font-weight: bold; margin-bottom: 10px; }
-        .lock-desc { color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
-        .warning-badge { display: inline-block; background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 15px; }
+        .lock-card { background: #1e293b; max-width: 450px; margin: 10vh auto 0; padding: 40px 30px; border-radius: 16px; border: 1px solid #334155; }
+        .lock-icon { font-size: 50px; margin-bottom: 15px; }
+        .lock-title { color: #ef4444; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .lock-desc { color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
+        .warning-badge { display: inline-block; background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 15px; }
         .lock-input { width: 100% !important; padding: 12px !important; border-radius: 8px !important; border: 1px solid #475569 !important; background-color: #0f172a !important; color: white !important; text-align: center; font-size: 18px !important; margin-bottom: 15px !important; }
-        .lock-btn { width: 100% !important; background-color: #ef4444 !important; padding: 14px !important; border-radius: 8px !important; font-weight: bold; }
-
-        /* Media Query สำหรับปรับแต่งหน้าจอเล็กพิเศษ */
-        @media (max-width: 480px) {
-            body { padding: 10px; }
-            .container { padding: 20px 15px; }
-            .iframe-container { height: 65vh; min-height: 380px; }
-            .lock-card { margin-top: 2vh; padding: 25px 15px; }
-        }
+        .lock-btn { width: 100% !important; background-color: #ef4444 !important; padding: 12px !important; border-radius: 8px !important; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -115,7 +40,11 @@
                 <div class="form-group">
                     <label for="exam-select">เลือกวิชาสอบ:</label>
                     <select id="exam-select" required>
-                        <option value="" disabled selected>-- กำลังโหลดรายวิชา... --</option>
+                        <option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLScWpQJEONTrTWXoTnF1ZVP3Ty17nQcinaKjCtXua34xeF1mFg/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 1 (วิทยาการคำนวณ) ม.1/2569</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLSfo65x8v39qQHtUtqxzQTPgOcM7hh6R5hhwoDopcxeqRtMr8w/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 5 (วิทยาการคำนวณ ม.3/2569)</option>
+                        <option value="https://docs.google.com/forms/d/e/1FAIpQLSelQKWyoXo3tvhWUulx2qfJCp6kXGbk45CzD3jVDHOEUzQuIg/viewform?usp=header">ข้อสอบปลายภาค วิชาเทคโนโลยี 1 (วิทยาการคำนวณ) ม.4/2569</option>
+                       <option value="" disabled selected>-- กำลังโหลดรายวิชา... --</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -129,15 +58,10 @@
         <!-- 2. หน้าข้อสอบ -->
         <div id="exam-section">
             <h2>ข้อสอบออนไลน์</h2>
-            <p style="font-size: 14px; line-height: 1.5;">
-                <b>อีเมล:</b> <span id="display-email"></span><br>
-                <b>วิชา:</b> <span id="display-subject"></span>
-            </p>
+            <p><b>อีเมล:</b> <span id="display-email"></span> | <b>วิชา:</b> <span id="display-subject"></span></p>
             <hr>
-            <div class="iframe-container">
-                <iframe id="exam-iframe" src=""></iframe>
-            </div>
-            <br>
+            <iframe id="exam-iframe" src="" width="100%" height="800" frameborder="0"></iframe>
+            <br><br>
             <button id="finish-btn" onclick="finishExam()" style="background-color: #28a745;">กดยืนยันเมื่อส่ง Google Forms เรียบร้อยแล้ว</button>
             <div id="loading-overlay">⏳ กำลังบันทึกข้อมูล กรุณารอ 5 วินาที...</div>
         </div>
@@ -166,6 +90,7 @@
         </div>
     </div>
 
+    <!-- เรียกใช้ไฟล์ JavaScript ก่อนปิด </body> เพียงที่เดียว -->
     <script src="script.js"></script>
 </body>
 </html>
