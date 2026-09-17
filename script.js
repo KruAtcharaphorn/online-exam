@@ -2,8 +2,7 @@ const CONFIG = {
     TEACHER_PIN: "999999",
     SCHOOL_DOMAIN: "@blm.ac.th",
     GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
-    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVS1PeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
-    EXAM_SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaqnLe2JB1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs/pub?output=csv", 
+    SPREADSHEET_ID: "1y-s60lcBqjDNIMW2TKoiVSlPeyaOSA20ON4LW5-_o3_RPmfe9PKnfNmntrga0Xd1-Hgs",
     MAX_WARNINGS: 3,
     SUBMIT_DELAY_MS: 5000
 };
@@ -16,69 +15,58 @@ let state = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-    loadExamsFromSheet();
+    loadExamsViaJSONP();
 
     const form = document.getElementById("student-info-form");
     if (form) form.addEventListener("submit", startExam);
+    
+    // ตรวจจับการสลับหน้าจอ (รองรับทั้ง PC และ มือถือ)
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleVisibilityChange);
 });
 
-// ฟังก์ชั่นดึงข้อมูลวิชาอัตโนมัติจาก Google Sheet CSV
-async function loadExamsFromSheet() {
+function loadExamsViaJSONP() {
     const examSelect = document.getElementById("exam-select");
     if (!examSelect) return;
 
-    try {
-        const cleanUrl = CONFIG.EXAM_SHEET_CSV_URL.trim();
-        const response = await fetch(cleanUrl);
+    window.handleSheetData = function(response) {
+        if (response && response.table && response.table.rows) {
+            const rows = response.table.rows;
+            examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
+            
+            let loadedCount = 0;
+            rows.forEach(row => {
+                if (row.c && row.c[0] && row.c[1]) {
+                    const subject = row.c[0].v;
+                    const url = row.c[1].v;
 
-        if (!response.ok) {
-            throw new Error(`HTTP Error Status: ${response.status}`);
-        }
-
-        const data = await response.text();
-        const rows = data.split(/\r?\n/).map(row => row.trim()).filter(row => row.length > 0);
-
-        examSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกรายวิชา --</option>';
-
-        // วนลูปอ่านข้อมูลเริ่มจากแถวที่ 2 (เว้นแถวหัวข้อ A1, B1)
-        for (let i = 1; i < rows.length; i++) {
-            const cols = parseCSVRow(rows[i]);
-            if (cols.length >= 2) {
-                const subject = cols[0].replace(/^"|"$/g, '').trim();
-                const url = cols[1].replace(/^"|"$/g, '').trim();
-
-                if (subject && url) {
-                    const option = document.createElement("option");
-                    option.value = url;
-                    option.textContent = subject;
-                    examSelect.appendChild(option);
+                    if (subject && url) {
+                        const option = document.createElement("option");
+                        option.value = url;
+                        option.textContent = subject;
+                        examSelect.appendChild(option);
+                        loadedCount++;
+                    }
                 }
+            });
+
+            if (loadedCount === 0) {
+                examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่พบข้อมูลรายวิชาใน Sheet</option>';
             }
-        }
-    } catch (error) {
-        console.error("Error loading exam list:", error);
-        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดรายวิชาได้ (เช็คสิทธิ์การแชร์ Sheet)</option>';
-    }
-}
-
-function parseCSVRow(row) {
-    const result = [];
-    let insideQuote = false;
-    let entry = '';
-
-    for (let char of row) {
-        if (char === '"') {
-            insideQuote = !insideQuote;
-        } else if (char === ',' && !insideQuote) {
-            result.push(entry);
-            entry = '';
         } else {
-            entry += char;
+            examSelect.innerHTML = '<option value="" disabled selected>❌ รูปแบบข้อมูลไม่ถูกต้อง</option>';
         }
-    }
-    result.push(entry);
-    return result;
+    };
+
+    const script = document.createElement("script");
+    const jsonpUrl = `https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:handleSheetData`;
+    script.src = jsonpUrl;
+    
+    script.onerror = function() {
+        examSelect.innerHTML = '<option value="" disabled selected>❌ ไม่สามารถโหลดได้ (เช็คการแชร์ Sheet)</option>';
+    };
+
+    document.body.appendChild(script);
 }
 
 function startExam(e) {
@@ -128,14 +116,9 @@ function finishExam() {
     }, CONFIG.SUBMIT_DELAY_MS);
 }
 
-function resetToChooseExam() {
-    state.examStarted = false;
-    state.warningCount = 0;
-    showSection("student-form-section");
-}
-
 function handleVisibilityChange() {
-    if (document.hidden && state.examStarted) {
+    // ทำงานเมื่อตรวจพบว่าหน้าต่างถูกพับ หรือ สลับแอปไปหน้าอื่น
+    if ((document.hidden || !document.hasFocus()) && state.examStarted) {
         state.warningCount++;
         const lockScreen = document.getElementById("lock-screen");
         const badgeText = document.getElementById("warning-badge-text");
@@ -149,7 +132,7 @@ function handleVisibilityChange() {
         if (state.warningCount < CONFIG.MAX_WARNINGS) {
             badgeText.innerText = `เตือนครั้งที่ ${state.warningCount} / ${CONFIG.MAX_WARNINGS}`;
             titleText.innerText = "แจ้งเตือนการออกจากหน้าสอบ";
-            descText.innerHTML = `คุณได้ทำการสลับแท็บหรือออกจากหน้าจอทำข้อสอบ<br>หากออกจากหน้าสอบครบ <b>${CONFIG.MAX_WARNINGS} ครั้ง</b> ระบบจะทำการล็อคหน้าจอทันที`;
+            descText.innerHTML = `คุณได้ทำการสลับแท็บ/แอป หรือออกจากหน้าจอทำข้อสอบ<br>หากออกจากหน้าสอบครบ <b>${CONFIG.MAX_WARNINGS} ครั้ง</b> ระบบจะทำการล็อคหน้าจอทันที`;
             pinSection.style.display = "none";
             ackSection.style.display = "block";
         } else {
